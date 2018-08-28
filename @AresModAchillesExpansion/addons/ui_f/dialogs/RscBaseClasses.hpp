@@ -98,12 +98,15 @@
 #define MB_BUTTON_USER    4
 
 // Import from editor defines
-#define GUI_GRID_X	(0)
-#define GUI_GRID_Y	(0)
-#define GUI_GRID_W	(0.025)
-#define GUI_GRID_H	(0.04)
-#define GUI_GRID_WAbs	(1)
-#define GUI_GRID_HAbs	(1)
+#define GUI_GRID_X		(0.294 * safeZoneW + safeZoneX)
+#define GUI_GRID_Y		(0.177 * safeZoneH + safeZoneY)
+#define GUI_GRID_W		(0.010 * safeZoneW)
+#define GUI_GRID_W_FIX	(0.025)
+#define GUI_GRID_H		(0.022 * safeZoneH)
+#define GUI_GRID_H_FIX	(0.04)
+
+#define TITLE_FONT_SIZE			(1.2 * GUI_GRID_H_FIX)
+#define DEFAULT_FONT_SIZE		(1.0 * GUI_GRID_H_FIX)
 
 // Forward declare some default base classes.
 class IGUIBack;
@@ -132,6 +135,7 @@ class RscMapControl;
 class RscActivePicture;
 class RscPicture;
 class RscTree;
+class RscTreeSearch: RscTree {};
 
 // Forward declare some 3den base classes.
 class ctrlDefault;
@@ -147,13 +151,28 @@ class ctrlControlsGroup: ctrlDefault {};
 class ctrlControlsGroupNoScrollbars: ctrlControlsGroup {};
 
 // Achilles base classes
+class RscAchillesXSliderH: RscXSliderH
+{
+	colorBackground[] = {0,0,0,1};
+};
+class RscAchillesCombo : RscCombo
+{
+	h = 1 * GUI_GRID_H_FIX;
+	rowHeight = 1.1 * GUI_GRID_H_FIX;
+	wholeHeight = 6.5 * GUI_GRID_H_FIX;
+};
 class RscAchillesEdit: RscEdit
 {		
 	autocomplete = "general";
+	colorBackground[] = {0,0,0,0};
 };
 class RscAchillesMessageEdit: RscAchillesEdit
 {
 	style = 16;
 	linespacing = 1;
 	default = 1;
+};
+class RscAchillesScriptEdit: RscAchillesMessageEdit
+{		
+	autocomplete = "scripting";
 };

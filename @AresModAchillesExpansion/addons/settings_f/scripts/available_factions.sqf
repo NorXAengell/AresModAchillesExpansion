@@ -2,23 +2,23 @@
 */
 Achilles_var_excludedFactions = [];
 
-_factions = ([configfile >> "CfgFactionClasses"] call BIS_fnc_getCfgSubClasses);
-_faction_names = [];
+private _factions = ([configfile >> "CfgFactionClasses"] call BIS_fnc_getCfgSubClasses);
+private _factionNames = [];
 
 {
-	_faction = _x;
-	_faction_cfg_path = (configfile >> "CfgFactionClasses" >> _faction);
-	if (([_faction_cfg_path, "side", -1] call BIS_fnc_returnConfigEntry) in [0,1,2]) then
+	private _faction = _x;
+	private _factionCfgPath = (configfile >> "CfgFactionClasses" >> _faction);
+	if (([_factionCfgPath, "side", -1] call BIS_fnc_returnConfigEntry) in [0,1,2,3]) then
 	{
-		_faction_name = [_faction_cfg_path, "displayName", ""] call BIS_fnc_returnConfigEntry;
-		if (not (_faction_name in _faction_names)) then
+		private _factionName = [_factionCfgPath, "displayName", ""] call BIS_fnc_returnConfigEntry;
+		if (not (_factionName in _factionNames)) then
 		{
-			_faction_names pushBack _faction_name;
+			_factionNames pushBack _factionName;
 			[
 				format ["Achilles_var_%1",_faction],
 				"CHECKBOX",
-				_faction_name,
-				localize "STR_AVAILABLE_FACTIONS",
+				_factionName,
+				localize "STR_AMAE_AVAILABLE_FACTIONS",
 				true,
 				false,
 				compile 
@@ -26,12 +26,14 @@ _faction_names = [];
 					params [""_value""]; 
 					if (_value) then 
 					{
-						Achilles_var_excludedFactions = Achilles_var_excludedFactions - [""" + _faction_name + """]
+						Achilles_var_excludedFactions = Achilles_var_excludedFactions - [""" + _factionName + """]
 					} else
 					{
-						Achilles_var_excludedFactions pushBack """ + _faction_name + """;
+						Achilles_var_excludedFactions pushBack """ + _factionName + """;
 					};
 					Achilles_var_reloadDisplay = true;
+					uiNamespace setVariable [""Achilles_var_nestedList_vehicleFactions"", []];
+					uiNamespace setVariable [""Achilles_var_supplyDrop_factions"", []];
 				")
 			] call cba_settings_fnc_init;
 		};

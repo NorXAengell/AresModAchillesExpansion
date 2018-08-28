@@ -3,8 +3,17 @@ class ModuleMine_F : ModuleEmpty_F
 	function = "Achilles_fnc_moduleMine";
 };
 
+class ModuleRemoteControl_F : Module_F
+{
+	function = "Achilles_fnc_moduleRemoteControl";
+};
+
 class ModuleCAS_F : Module_F {};
 class ModuleCASGun_F : ModuleCAS_F 
+{
+	scopeCurator = 0;
+};
+class ModuleCASBomb_F : ModuleCASGun_F
 {
 	scopeCurator = 0;
 };
@@ -45,7 +54,7 @@ class Achilles_Module_FireSupport_CASGunMissile : Achilles_Module_FireSupport_CA
 class Achilles_Module_FireSupport_CASBomb : Achilles_Module_FireSupport_CASGun
 {
 	_generalMacro = "Achilles_Module_FireSupport_CASBomb";
-	displayName = "$STR_CAS_BOMB_STRIKE";
+	displayName = "$STR_AMAE_CAS_BOMB_STRIKE";
 	portrait = "\a3\Modules_F_Curator\Data\portraitCASBomb_ca.paa";
 	model = "\a3\Modules_F_Curator\CAS\surfaceMissile.p3d";
 	curatorCost = 5;

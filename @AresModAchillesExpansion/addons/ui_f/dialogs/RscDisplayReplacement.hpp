@@ -16,6 +16,7 @@ class RscDisplayCurator
 {
 	// couple achilles init with curator display
 	onLoad = "[_this select 0] call Achilles_fnc_onDisplayCuratorLoad;";
+	onUnload = "[_this select 0] call Achilles_fnc_onDisplayCuratorUnload;";
 	class Controls 
 	{
 		#include "Replacement\RscDisplayAttributesModuleTree.hpp"
@@ -36,11 +37,7 @@ class RscDisplayMain: RscStandardDisplay
 	};
 };
 */
-// load external resources
-class RscAttributeOwners : RscControlsGroupNoScrollbars {};
-
 // load external attributes
-class RscAttributeExec : RscControlsGroupNoScrollbars {};
 class RscAttributeGroupID: RscControlsGroupNoScrollbars {};
 
 // include modified attributes

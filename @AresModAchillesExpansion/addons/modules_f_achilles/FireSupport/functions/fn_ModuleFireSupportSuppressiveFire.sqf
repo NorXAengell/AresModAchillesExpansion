@@ -1,82 +1,155 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	AUTHOR: Kex
-//	DATE: 30/4/17
-//	VERSION: 7.0
+//	AUTHOR: Kex, CreepPork_Lv
+//	DATE: 22/12/17
+//	VERSION: 8.0
 //  DESCRIPTION: Function for suppressive fire module
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "\achilles\modules_f_ares\module_header.hpp"
+#include "\achilles\modules_f_ares\module_header.h"
 
 // find unit to perform suppressiove fire
-_unit = [_logic, false] call Ares_fnc_GetUnitUnderCursor;
-if (isNull _unit) exitWith {[localize "STR_NO_UNIT_SELECTED"] call Ares_fnc_ShowZeusMessage; playSound "FD_Start_F"};
+private _unit = [_logic, false] call Ares_fnc_GetUnitUnderCursor;
+if (isNull _unit) exitWith {[localize "STR_AMAE_NO_UNIT_SELECTED"] call Achilles_fnc_ShowZeusErrorMessage};
+if (_unit isKindOf "Thing") exitWith {[localize "STR_AMAE_NO_UNIT_SELECTED"] call Achilles_fnc_ShowZeusErrorMessage};
 
 //Broadcast suppression functions
+/*
 if (isNil "Achilles_var_suppressiveFire_init_done") then
 {
 	publicVariable "Achilles_fnc_checkLineOfFire2D";
-	publicVariable "Achilles_fnc_SuppressiveFire";
+	publicVariable "Achilles_fnc_getWeaponsMuzzlesMagazines";
+	publicVariable "Achilles_fnc_forceWeaponFire";
+	publicVariable "Achilles_fnc_suppressiveFire";
 	Achilles_var_suppressiveFire_init_done = true;
 };
+//Broadcast set ammo function
+if (isNil "Achilles_var_setammo_init_done") then {
+	publicVariableServer "Achilles_fnc_setUnitAmmoDef";
+	publicVariableServer "Achilles_fnc_setVehicleAmmoDef";
+	Achilles_var_setammo_init_done = true;
+};
+*/
 
-// get list of possible targest
-_allTargetsUnsorted = allMissionObjects "Achilles_Create_Suppression_Target_Module";
-if (count _allTargetsUnsorted == 0) exitWith {[localize "STR_NO_TARGET_MARKER"] call Ares_fnc_ShowZeusMessage; playSound "FD_Start_F"};
-_allTargets = [_allTargetsUnsorted, [], { _x getVariable ["SortOrder", 0]; }, "ASCEND"] call BIS_fnc_sortBy;
-_targetChoices = [localize "STR_RANDOM", localize "STR_NEAREST", localize "STR_FARTHEST"];
+// get list of possible targets
+private _allTargetsData = ["Achilles_Create_Universal_Target_Module"] call Achilles_fnc_getLogics;
+_allTargetsData params ["_allTargetNames","_allTargetLogics"];
+if (_allTargetNames isEqualTo []) exitWith {[localize "STR_AMAE_NO_TARGET_MARKER"] call Achilles_fnc_ShowZeusErrorMessage};
+private _targetChoices = [localize "STR_AMAE_RANDOM", localize "STR_AMAE_NEAREST", localize "STR_AMAE_FARTHEST"];
+_targetChoices append _allTargetNames;
+
+// list available fire modes
+private _fireModes = [localize "STR_AMAE_AUTOMATIC", localize "STR_AMAE_BURST", localize "STR_AMAE_SINGLE_SHOT"];
+
+if (_unit isKindOf "Man") then
 {
-	_targetChoices pushBack (name _x);
-} forEach _allTargets;
-if (count _targetChoices == 3) exitWith {[localize "STR_NO_TARGET_AVAIABLE"] call Ares_fnc_ShowZeusMessage; playSound "FD_Start_F"};
+	// talking guns is only available for more than a single unit
+	if (count (units _unit) > 1) then {_fireModes pushBack (localize "STR_AMAE_TALKING_GUNS")};
+}
+else
+{
+	// If all of the group units are in the same vehicle then don't add the Talking Guns mode.
+	if (count ((units _unit) - (crew _unit)) > 0) then {_fireModes pushBack (localize "STR_AMAE_TALKING_GUNS")};
+};
+
+// get available weapons, muzzles, magazines
+private _weaponsAndMuzzlesAndMagazines = [_unit] call Achilles_fnc_getWeaponsMuzzlesMagazines;
+if (_weaponsAndMuzzlesAndMagazines isEqualTo []) exitWith 
+{
+	[localize "STR_AMAE_NO_VALID_WEAPON_AVAILABLE"] call Achilles_fnc_ShowZeusErrorMessage;
+};
+private _weaponsToFire = [];
+private _weaponMuzzleMagazineIdxList = [];
+{
+	private _weapIdx = _forEachIndex;
+	_x params [["_weaponAndTurret","",["",[]]], ["_muzzlesAndMagazines",[""],[[]]]];
+	_weaponAndTurret params [["_weapon","",[""]]];
+	private _weaponName = getText (configFile >> "CfgWeapons" >> _weapon >> "displayName");
+	{
+		private _muzzleIdx = _forEachIndex;
+		_x params [["_muzzle","",[""]], ["_magazines",[""],[[]]]];
+		{
+			private _magazine = _x;
+			private _magIdx = _forEachIndex;
+			private _magName = getText (configFile >> "CfgMagazines" >> _magazine >> "displayName");
+			_weaponsToFire pushBack format ["%1 (%2)", _weaponName, _magName];
+			_weaponMuzzleMagazineIdxList pushBack [_weapIdx, _muzzleIdx, _magIdx];
+		} forEach _magazines;
+	} forEach _muzzlesAndMagazines;
+} forEach _weaponsAndMuzzlesAndMagazines;
 
 // select parameters
-_dialogResult = 
+private _dialogResult =
 [
-	localize "STR_SUPPRESIVE_FIRE",
+	localize "STR_AMAE_SUPPRESIVE_FIRE",
 	[
-		[format [localize "STR_SUPPRESS_X", " "], _targetChoices],
-		[localize "STR_STANCE", [localize "STR_PRONE",localize "STR_CROUCH",localize "STR_STAND"]],
-		[localize "STR_LINE_UP", [localize "STR_FALSE",localize "STR_TRUE"]],
-		[localize "STR_FIRE_MODE", [localize "STR_AUTOMATIC", localize "STR_BURST", localize "STR_SINGLE_SHOT"]],
-		[localize "STR_DURATION", "", "10"]
+		[format [localize "STR_AMAE_SUPPRESS_X", " "], _targetChoices],
+		[localize "STR_AMAE_STANCE", [localize "STR_AMAE_PRONE",localize "STR_AMAE_CROUCH",localize "STR_AMAE_STAND"], 1],
+		[localize "STR_AMAE_LINE_UP", [localize "STR_AMAE_YES",localize "STR_AMAE_NO"], 1],
+		[localize "STR_AMAE_WEAPON_TO_FIRE", _weaponsToFire],
+		[localize "STR_AMAE_FIRE_MODE", _fireModes],
+		[localize "STR_AMAE_DURATION", "", "20"]
 	]
 ] call Ares_fnc_ShowChooseDialog;
-if (count _dialogResult == 0) exitWith {};
 
-_targetChooseAlgorithm = _dialogResult select 0;
-_stanceIndex = _dialogResult select 1;
-_doLineUp = if (_dialogResult select 2 == 1) then {true} else {false};
-_fireModeIndex = _dialogResult select 3;
-_duration = parseNumber (_dialogResult select 4);
+if (_dialogResult isEqualTo []) exitWith {};
+
+_dialogResult params
+[
+	"_targetChooseAlgorithm",
+	"_stanceIndex",
+	"_doLineUp",
+	"_weaponsToFireIdx",
+	"_fireModeIndex",
+	"_duration"
+];
+_doLineUp = _doLineUp == 0;
+(_weaponMuzzleMagazineIdxList select _weaponsToFireIdx) params ["_weapIdx", "_muzzleIdx", "_magIdx"];
+_duration = parseNumber _duration;
 
 // Choose a target to fire at
-_selectedTarget = objNull;
-switch (_targetChooseAlgorithm) do
-{
-	case 0: // Random
-	{
-		_selectedTarget = _allTargets call BIS_fnc_selectRandom;
-	};
-	case 1: // Nearest
-	{
-		_selectedTarget = [position _logic, _allTargets] call Ares_fnc_GetNearest;
-	};
-	case 2: // Furthest
-	{
-		_selectedTarget = [position _logic, _allTargets] call Ares_fnc_GetFarthest;
-	};
-	default // Specific target
-	{
-		_selectedTarget = _allTargets select (_targetChooseAlgorithm - 3);
-	};
-};
+private _selectedTargetLogic = [position _logic, _allTargetLogics, _targetChooseAlgorithm] call Achilles_fnc_logicSelector;
 
-if (local _unit) then
-{
-	[_unit,getPosWorld _selectedTarget,_stanceIndex,_doLineUp,_fireModeIndex,_duration] call Achilles_fnc_SuppressiveFire;
-} else
-{
-	[_unit,getPosWorld _selectedTarget,_stanceIndex,_doLineUp,_fireModeIndex,_duration] remoteExec ["Achilles_fnc_SuppressiveFire", _unit];
-};
+// Spawn our dummy logic (if executing client does not have Achilles)
+private _dummyTargetLogic = [_selectedTargetLogic] call Achilles_fnc_createDummyLogic;
 
-#include "\achilles\modules_f_ares\module_footer.hpp"
+// make sure the group is local
+private _group = group _unit;
+if (not local _group) then
+{
+	// transfer non-local groups to Zeus
+	[
+		[clientOwner,_group],
+		{
+			params ["_zeusOwnerId", "_group"];
+			// save the unit loadout
+			{
+				if (alive _x) then
+				{
+					_x setVariable ["Achilles_var_tmpLoadout", getUnitLoadout _x, true];
+					// change ownership for the vehicle
+					private _vehicle = vehicle _x;
+					if (not (_vehicle isEqualTo _x) and {_x isEqualTo effectiveCommander vehicle _x}) then
+					{
+						_vehicle setOwner _zeusOwnerId;
+					};
+				};
+			} forEach units _group;
+			// change ownership
+			_group setGroupOwner _zeusOwnerId;
+		}, 2
+	] call Achilles_fnc_spawn;
+	// reset the unit loadout as soon as they have become local
+	waitUntil {sleep 1; local _group or {isNull _group or {{alive _x} count units _group == 0}}};
+	{
+		private _loadout = _x getVariable ["Achilles_var_tmpLoadout", []];
+		if !(_loadout isEqualTo []) then
+		{
+			_x setUnitLoadout _loadout;
+		};
+	} forEach units _group;
+};
+if (isNull _group or {{alive _x} count units _group == 0}) exitWith {};
+// Executing with call because we are in a suspension-enabled enviornment (see module_header.h).
+[_unit,_dummyTargetLogic, _weapIdx, _muzzleIdx, _magIdx, _fireModeIndex, _stanceIndex, _doLineUp, _duration] call Achilles_fnc_suppressiveFire;
+
+#include "\achilles\modules_f_ares\module_footer.h"

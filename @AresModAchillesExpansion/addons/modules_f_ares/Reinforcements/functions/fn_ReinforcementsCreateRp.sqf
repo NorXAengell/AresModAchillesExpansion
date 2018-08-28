@@ -1,22 +1,19 @@
-#include "\achilles\modules_f_ares\module_header.hpp"
+#include "\achilles\modules_f_ares\module_header.h"
 
-if (isNil "Ares_ReinforcementRpCount") then
-{
-	Ares_ReinforcementRpCount = 0;
-};
+if (isNil "Ares_ReinforcementRpCount") then { Ares_ReinforcementRpCount = 0 };
 
 _deleteModuleOnExit = false;
 
-_targetPhoneticName = [Ares_ReinforcementRpCount] call Ares_fnc_GetPhoneticName;
-_target_name = format ["RP %1", _targetPhoneticName];
-_dialogResult = 
+private _targetPhoneticName = [Ares_ReinforcementRpCount] call Ares_fnc_GetPhoneticName;
+private _target_name = format ["RP %1", _targetPhoneticName];
+private _dialogResult =
 [
-	localize "STR_CREATE_NEW_RP",
+	localize "STR_AMAE_CREATE_NEW_RP",
 	[
-		[localize "STR_NAME", "", _target_name, true]
+		[localize "STR_AMAE_NAME", "", _target_name, true]
 	]
 ] call Ares_fnc_showChooseDialog;
-if (count _dialogResult == 0) exitWith {_deleteModuleOnExit = true};
+if (_dialogResult isEqualto []) exitWith {_deleteModuleOnExit = true};
 _target_name = _dialogResult select 0;
 _logic setName _target_name;
 _logic setVariable ["SortOrder", Ares_ReinforcementRpCount];
@@ -24,4 +21,4 @@ _logic setVariable ["SortOrder", Ares_ReinforcementRpCount];
 Ares_ReinforcementRpCount = Ares_ReinforcementRpCount + 1;
 publicVariable "Ares_ReinforcementRpCount";
 
-#include "\achilles\modules_f_ares\module_footer.hpp"
+#include "\achilles\modules_f_ares\module_footer.h"
